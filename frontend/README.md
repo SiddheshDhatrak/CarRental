@@ -12,9 +12,9 @@ A compact full-stack rental platform with a cinematic scroll interface, animated
 
 ## Tech Stack
 
-- Node.js + Express for APIs and production static hosting.
-- MySQL 8+ (InnoDB) for cars, customers, and bookings.
 - React + Vite frontend.
+- Separate Node.js + Express backend in ../backend.
+- MySQL 8+ (InnoDB) for cars, customers, and bookings.
 - Framer Motion for advanced animation and scroll interaction.
 - 21st.dev package included for ecosystem compatibility and design workflow.
 
@@ -39,31 +39,45 @@ DB_CONNECTION_LIMIT=10
 
 ## Run Locally
 
-1. Install dependencies
+1. Install frontend dependencies
 
 ```bash
 npm install
 ```
 
-2. Development mode (API server + Vite frontend)
+2. Start frontend
 
 ```bash
-npm run dev
-```
-
-3. Production build and serve
-
-```bash
-npm run build
 npm start
 ```
 
-4. Open http://localhost:3000
+3. In a second terminal, start backend
+
+```bash
+cd ../backend
+npm install
+npm start
+```
+
+4. Production preview (frontend)
+
+```bash
+npm run build
+npm run preview
+```
+
+5. Open http://localhost:5173
 
 ## API
 
 - GET /api/cars
 - POST /api/rent
+- GET /api/bookings?email=<customer_email>
+- PATCH /api/bookings/:bookingId/cancel
+- GET /api/admin/bookings
+- PATCH /api/admin/bookings/:bookingId/status
+- POST /api/admin/cars
+- PATCH /api/admin/cars/:carId
 
 ## Notes
 

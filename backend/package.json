@@ -1,0 +1,25 @@
+{
+  "name": "car-rental-backend",
+  "version": "1.0.0",
+  "description": "MySQL-backed API for the car rental app",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "check": "node --check server.js"
+  },
+  "keywords": [
+    "car-rental",
+    "express",
+    "mysql"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.0",
+    "mysql2": "^3.12.0"
+  }
+}
