@@ -1,14 +1,14 @@
 :root {
-  --bg: #020617; /* Very dark slate, almost black */
+  --bg: #020617;
   --bg-soft: #0f172a;
   --text: #f8fafc;
   --text-muted: #94a3b8;
   --card: rgba(15, 23, 42, 0.4);
   --card-hover: rgba(30, 41, 59, 0.6);
   --line: rgba(255, 255, 255, 0.08);
-  --accent: #3b82f6; /* Electric Blue */
+  --accent: #3b82f6;
   --accent-glow: rgba(59, 130, 246, 0.4);
-  --secondary: #8b5cf6; /* Vibrant Purple */
+  --secondary: #8b5cf6;
   --good: #34d399;
   --bad: #f87171;
   --shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
@@ -32,7 +32,7 @@ body {
   font-family: "Outfit", sans-serif;
   color: var(--text);
   background-color: var(--bg);
-  /* Premium Midnight Aurora Gradients */
+
   background-image: 
     radial-gradient(ellipse at 10% 20%, rgba(59, 130, 246, 0.15), transparent 50%),
     radial-gradient(ellipse at 90% 80%, rgba(139, 92, 246, 0.15), transparent 50%),
@@ -67,12 +67,12 @@ a {
   box-shadow: 0 0 10px var(--accent-glow);
 }
 
-/* Typography refinements */
+
 h1, h2, h3, .brand-mark, .stat-card strong, .step span {
   font-family: "Syne", sans-serif;
 }
 
-/* Glassmorphism Top Nav */
+
 .top-nav-wrap {
   position: sticky;
   top: 0;
@@ -164,7 +164,7 @@ h1, h2, h3, .brand-mark, .stat-card strong, .step span {
   flex-wrap: wrap;
 }
 
-/* Premium Buttons */
+
 .cta,
 .ghost,
 .rent-btn,
