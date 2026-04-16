@@ -7,8 +7,14 @@
     "transmission": "Automatic",
     "fuel": "Petrol",
     "pricePerDay": 44,
-    "image": "https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=1200&q=80",
-    "available": true
+    "image": "https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=1200&q=80",
+    "available": false,
+    "rentalInfo": {
+      "customerName": "John Doe",
+      "customerEmail": "john@example.com",
+      "rentalDays": 1,
+      "bookedAt": "2026-04-16T16:12:34.307Z"
+    }
   },
   {
     "id": "CR-102",
@@ -18,7 +24,7 @@
     "transmission": "Automatic",
     "fuel": "Diesel",
     "pricePerDay": 78,
-    "image": "https://images.unsplash.com/photo-1619994269756-5f8de2f7b6e4?auto=format&fit=crop&w=1200&q=80",
+    "image": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=1200&q=80",
     "available": true
   },
   {
@@ -51,7 +57,7 @@
     "transmission": "Automatic",
     "fuel": "Electric",
     "pricePerDay": 88,
-    "image": "https://images.unsplash.com/photo-1590362891991-f776e747a588?auto=format&fit=crop&w=1200&q=80",
+    "image": "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?auto=format&fit=crop&w=1200&q=80",
     "available": true
   },
   {
@@ -63,12 +69,6 @@
     "fuel": "Petrol",
     "pricePerDay": 120,
     "image": "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1200&q=80",
-    "available": false,
-    "rentalInfo": {
-      "customerName": "Siddhesh",
-      "customerEmail": "siddheshdhatrak06@gmail.com",
-      "rentalDays": 10,
-      "bookedAt": "2026-04-16T15:43:30.486Z"
-    }
+    "available": true
   }
 ]

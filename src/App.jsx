@@ -77,11 +77,11 @@ function CarCard({ car, index, onRent }) {
   return (
     <motion.article
       className="car-card"
-      initial={{ opacity: 0, y: 26 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, amount: 0.25 }}
-      transition={{ duration: 0.45, delay: index * 0.06 }}
-      whileHover={{ y: -8, rotateX: 1.5 }}
+      transition={{ duration: 0.6, delay: index * 0.08, ease: [0.25, 1, 0.5, 1] }}
+      whileHover={{ y: -12, scale: 1.02, rotateX: 4, rotateY: 2 }}
     >
       <img src={car.image} alt={car.name} loading="lazy" />
       <div className="car-card-inner">
@@ -289,7 +289,7 @@ function App() {
       <header className="top-nav-wrap">
         <nav className="top-nav container">
           <a href="#hero" className="brand-mark">
-            DriveNow Scroll
+            DriveNow
           </a>
           <ul>
             {menuItems.map((item) => (
