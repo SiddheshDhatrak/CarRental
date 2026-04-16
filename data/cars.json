@@ -1,0 +1,74 @@
+[
+  {
+    "id": "CR-101",
+    "name": "Toyota Corolla",
+    "category": "Economy",
+    "seats": 5,
+    "transmission": "Automatic",
+    "fuel": "Petrol",
+    "pricePerDay": 44,
+    "image": "https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=1200&q=80",
+    "available": true
+  },
+  {
+    "id": "CR-102",
+    "name": "Hyundai Tucson",
+    "category": "SUV",
+    "seats": 5,
+    "transmission": "Automatic",
+    "fuel": "Diesel",
+    "pricePerDay": 78,
+    "image": "https://images.unsplash.com/photo-1619994269756-5f8de2f7b6e4?auto=format&fit=crop&w=1200&q=80",
+    "available": true
+  },
+  {
+    "id": "CR-103",
+    "name": "Honda City",
+    "category": "Sedan",
+    "seats": 5,
+    "transmission": "Manual",
+    "fuel": "Petrol",
+    "pricePerDay": 57,
+    "image": "https://images.unsplash.com/photo-1553440569-bcc63803a83d?auto=format&fit=crop&w=1200&q=80",
+    "available": true
+  },
+  {
+    "id": "CR-104",
+    "name": "Kia Carnival",
+    "category": "Family Van",
+    "seats": 7,
+    "transmission": "Automatic",
+    "fuel": "Diesel",
+    "pricePerDay": 95,
+    "image": "https://images.unsplash.com/photo-1494905998402-395d579af36f?auto=format&fit=crop&w=1200&q=80",
+    "available": true
+  },
+  {
+    "id": "CR-105",
+    "name": "MG ZS EV",
+    "category": "Electric",
+    "seats": 5,
+    "transmission": "Automatic",
+    "fuel": "Electric",
+    "pricePerDay": 88,
+    "image": "https://images.unsplash.com/photo-1590362891991-f776e747a588?auto=format&fit=crop&w=1200&q=80",
+    "available": true
+  },
+  {
+    "id": "CR-106",
+    "name": "BMW 3 Series",
+    "category": "Premium",
+    "seats": 5,
+    "transmission": "Automatic",
+    "fuel": "Petrol",
+    "pricePerDay": 120,
+    "image": "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=1200&q=80",
+    "available": false,
+    "rentalInfo": {
+      "customerName": "Siddhesh",
+      "customerEmail": "siddheshdhatrak06@gmail.com",
+      "rentalDays": 10,
+      "bookedAt": "2026-04-16T15:43:30.486Z"
+    }
+  }
+]

@@ -1,0 +1,35 @@
+{
+  "name": "car-rental",
+  "version": "1.0.0",
+  "description": "Scroll-based car rental website with Framer Motion and live availability",
+  "main": "server.js",
+  "scripts": {
+    "build": "vite build",
+    "client": "vite",
+    "server": "node --watch server.js",
+    "dev": "concurrently -k \"npm:server\" \"npm:client\"",
+    "start": "node server.js",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "car-rental",
+    "express",
+    "react",
+    "framer-motion",
+    "21st.dev"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "framer-motion": "^11.11.11",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@21st-dev/magic": "^0.1.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "vite": "^5.4.10"
+  }
+}
