@@ -7,9 +7,23 @@ CREATE DATABASE IF NOT EXISTS car_rental
 
 USE car_rental;
 
+CREATE TABLE IF NOT EXISTS users (
+  user_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  full_name VARCHAR(100) NOT NULL,
+  email VARCHAR(254) NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id),
+  UNIQUE KEY uq_users_email (email),
+  KEY idx_users_active_email (is_active, email)
+) ENGINE=InnoDB;
+
 -- Customers are kept separate so repeat renters are not duplicated.
 CREATE TABLE IF NOT EXISTS customers (
   customer_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NULL,
   full_name VARCHAR(100) NOT NULL,
   email VARCHAR(254) NOT NULL,
   phone VARCHAR(20) NULL,
@@ -17,8 +31,14 @@ CREATE TABLE IF NOT EXISTS customers (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (customer_id),
+  UNIQUE KEY uq_customers_user_id (user_id),
   UNIQUE KEY uq_customers_email (email),
-  UNIQUE KEY uq_customers_license_no (license_no)
+  UNIQUE KEY uq_customers_license_no (license_no),
+  CONSTRAINT fk_customers_user
+    FOREIGN KEY (user_id)
+    REFERENCES users(user_id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- public_code maps to app ids like CR-101.
@@ -136,8 +156,10 @@ VALUES
 INSERT INTO customers (full_name, email)
 VALUES ('John Doe', 'john@example.com');
 
+-- FIRST: Store the IDs in variables so the tables are not actively being read during the INSERT
+SET @cust_id = (SELECT customer_id FROM customers WHERE email = 'john@example.com');
+SET @car_id = (SELECT car_id FROM cars WHERE public_code = 'CR-101');
+
+-- SECOND: Insert the booking using the variables. This prevents Error 1442.
 INSERT INTO bookings (customer_id, car_id, rental_days, booked_at, start_date, booking_status, total_amount)
-SELECT c.customer_id, ca.car_id, 1, '2026-04-16 16:12:34', '2026-04-16', 'CONFIRMED', 0
-FROM customers c
-JOIN cars ca ON ca.public_code = 'CR-101'
-WHERE c.email = 'john@example.com';
+VALUES (@cust_id, @car_id, 1, '2026-04-16 16:12:34', '2026-04-16', 'CONFIRMED', 0);

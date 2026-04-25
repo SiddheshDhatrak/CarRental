@@ -1,8 +1,11 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const mysql = require("mysql2/promise");
+const crypto = require("crypto");
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -20,6 +23,8 @@ const pool = mysql.createPool({
 
 const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
 const adminApiKey = process.env.ADMIN_API_KEY || "change-this-admin-key";
+const authSecret = process.env.AUTH_SECRET || "change-this-auth-secret";
+const authTokenTtlSeconds = Number(process.env.AUTH_TOKEN_TTL_SECONDS || 60 * 60 * 24 * 7);
 
 app.use(helmet());
 app.use(cors({ origin: corsOrigin }));
@@ -43,6 +48,110 @@ function parsePositiveInteger(value) {
   }
 
   return numberValue;
+}
+
+function base64UrlEncode(value) {
+  return Buffer.from(value)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function base64UrlDecode(value) {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padLength = (4 - (normalized.length % 4)) % 4;
+  return Buffer.from(normalized + "=".repeat(padLength), "base64").toString("utf8");
+}
+
+function signToken(payload) {
+  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+  const signature = crypto
+    .createHmac("sha256", authSecret)
+    .update(encodedPayload)
+    .digest("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+
+  return `${encodedPayload}.${signature}`;
+}
+
+function verifyToken(token) {
+  if (!token || !token.includes(".")) {
+    return null;
+  }
+
+  const [encodedPayload, providedSignature] = token.split(".");
+  if (!encodedPayload || !providedSignature) {
+    return null;
+  }
+
+  const expectedSignature = crypto
+    .createHmac("sha256", authSecret)
+    .update(encodedPayload)
+    .digest("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+
+  const expectedBuffer = Buffer.from(expectedSignature);
+  const providedBuffer = Buffer.from(providedSignature);
+
+  if (expectedBuffer.length !== providedBuffer.length) {
+    return null;
+  }
+
+  if (!crypto.timingSafeEqual(expectedBuffer, providedBuffer)) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(base64UrlDecode(encodedPayload));
+    if (!payload.exp || Number(payload.exp) < Math.floor(Date.now() / 1000)) {
+      return null;
+    }
+
+    return payload;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const derivedKey = crypto.scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${derivedKey}`;
+}
+
+function verifyPassword(password, storedHash) {
+  if (!storedHash || !storedHash.includes(":")) {
+    return false;
+  }
+
+  const [salt, expectedHash] = storedHash.split(":");
+  if (!salt || !expectedHash) {
+    return false;
+  }
+
+  const derivedKey = crypto.scryptSync(password, salt, 64).toString("hex");
+  const expectedBuffer = Buffer.from(expectedHash, "hex");
+  const derivedBuffer = Buffer.from(derivedKey, "hex");
+
+  if (expectedBuffer.length !== derivedBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(expectedBuffer, derivedBuffer);
+}
+
+function createAuthPayload(user) {
+  return {
+    userId: user.userId,
+    email: user.email,
+    fullName: user.fullName,
+    exp: Math.floor(Date.now() / 1000) + authTokenTtlSeconds,
+  };
 }
 
 function mapCarRow(row) {
@@ -77,6 +186,28 @@ function adminOnly(req, _res, next) {
     return next(createHttpError(401, "Admin authorization failed."));
   }
 
+  next();
+}
+
+function readBearerToken(req) {
+  const authHeader = String(req.header("authorization") || "");
+  const [scheme, token] = authHeader.split(" ");
+  if (scheme?.toLowerCase() !== "bearer" || !token) {
+    return null;
+  }
+
+  return token;
+}
+
+function requireAuth(req, _res, next) {
+  const token = readBearerToken(req);
+  const payload = verifyToken(token);
+
+  if (!payload) {
+    return next(createHttpError(401, "Authentication required."));
+  }
+
+  req.authUser = payload;
   next();
 }
 
@@ -137,15 +268,139 @@ app.get("/api/cars", async (_req, res, next) => {
   }
 });
 
+app.post("/api/auth/signup", async (req, res, next) => {
+  const fullName = String(req.body.fullName || "").trim();
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const password = String(req.body.password || "");
+
+  if (!fullName || fullName.length < 2) {
+    return next(createHttpError(400, "Full name must be at least 2 characters."));
+  }
+
+  if (!validateEmail(email)) {
+    return next(createHttpError(400, "Please enter a valid email address."));
+  }
+
+  if (password.length < 8) {
+    return next(createHttpError(400, "Password must be at least 8 characters."));
+  }
+
+  const passwordHash = hashPassword(password);
+
+  try {
+    const [result] = await pool.query(
+      `
+        INSERT INTO users (full_name, email, password_hash)
+        VALUES (?, ?, ?)
+      `,
+      [fullName, email, passwordHash]
+    );
+
+    const user = {
+      userId: result.insertId,
+      fullName,
+      email,
+    };
+    const token = signToken(createAuthPayload(user));
+
+    res.status(201).json({
+      message: "Account created successfully.",
+      token,
+      user,
+    });
+  } catch (error) {
+    if (error && error.code === "ER_DUP_ENTRY") {
+      return next(createHttpError(409, "An account with this email already exists."));
+    }
+
+    next(error);
+  }
+});
+
+app.post("/api/auth/login", async (req, res, next) => {
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const password = String(req.body.password || "");
+
+  if (!validateEmail(email)) {
+    return next(createHttpError(400, "Please enter a valid email address."));
+  }
+
+  if (!password) {
+    return next(createHttpError(400, "Password is required."));
+  }
+
+  try {
+    const [rows] = await pool.query(
+      `
+        SELECT user_id AS userId, full_name AS fullName, email, password_hash AS passwordHash
+        FROM users
+        WHERE email = ?
+        LIMIT 1
+      `,
+      [email]
+    );
+
+    if (rows.length === 0 || !verifyPassword(password, rows[0].passwordHash)) {
+      return next(createHttpError(401, "Invalid email or password."));
+    }
+
+    const user = {
+      userId: rows[0].userId,
+      fullName: rows[0].fullName,
+      email: rows[0].email,
+    };
+    const token = signToken(createAuthPayload(user));
+
+    res.json({
+      message: "Login successful.",
+      token,
+      user,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/auth/me", requireAuth, async (req, res, next) => {
+  try {
+    const [rows] = await pool.query(
+      `
+        SELECT user_id AS userId, full_name AS fullName, email
+        FROM users
+        WHERE user_id = ?
+        LIMIT 1
+      `,
+      [req.authUser.userId]
+    );
+
+    if (rows.length === 0) {
+      return next(createHttpError(401, "User account not found."));
+    }
+
+    const user = rows[0];
+    const token = signToken(createAuthPayload(user));
+
+    res.json({ user, token });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post("/api/rent", async (req, res, next) => {
   const { carId, customerName, customerEmail, rentalDays } = req.body;
+  const authPayload = verifyToken(readBearerToken(req));
 
-  if (!carId || !customerName || !customerEmail || !rentalDays) {
+  if (!carId || !rentalDays) {
     return next(createHttpError(400, "All fields are required."));
   }
 
-  const normalizedName = String(customerName).trim();
-  const normalizedEmail = String(customerEmail).trim().toLowerCase();
+  const normalizedName = authPayload
+    ? String(authPayload.fullName).trim()
+    : String(customerName || "").trim();
+  const normalizedEmail = authPayload
+    ? String(authPayload.email).trim().toLowerCase()
+    : String(customerEmail || "").trim().toLowerCase();
+  const authenticatedUserId = authPayload ? Number(authPayload.userId) : null;
   const days = parsePositiveInteger(rentalDays);
 
   if (!normalizedName) {
@@ -180,12 +435,13 @@ app.post("/api/rent", async (req, res, next) => {
 
     await connection.query(
       `
-        INSERT INTO customers (full_name, email)
-        VALUES (?, ?)
+        INSERT INTO customers (user_id, full_name, email)
+        VALUES (?, ?, ?)
         ON DUPLICATE KEY UPDATE
-          full_name = VALUES(full_name)
+          full_name = VALUES(full_name),
+          user_id = COALESCE(VALUES(user_id), user_id)
       `,
-      [normalizedName, normalizedEmail]
+      [authenticatedUserId, normalizedName, normalizedEmail]
     );
 
     const [customerRows] = await connection.query(
@@ -567,11 +823,28 @@ app.patch("/api/admin/cars/:carId", adminOnly, async (req, res, next) => {
   }
 });
 
+function isSchemaMismatchError(error) {
+  const schemaErrorCodes = new Set([
+    "ER_NO_SUCH_TABLE",
+    "ER_BAD_FIELD_ERROR",
+    "ER_NO_REFERENCED_ROW_2",
+    "ER_ROW_IS_REFERENCED_2",
+  ]);
+
+  return Boolean(error && schemaErrorCodes.has(error.code));
+}
+
 app.use((error, _req, res, _next) => {
   const statusCode = error.statusCode || 500;
 
   if (statusCode >= 500) {
     console.error(error);
+  }
+
+  if (isSchemaMismatchError(error)) {
+    return res.status(500).json({
+      message: "Database schema is outdated or incomplete. Re-import schema.sql and restart the backend.",
+    });
   }
 
   res.status(statusCode).json({
@@ -588,11 +861,32 @@ async function startServer() {
     await connection.ping();
     connection.release();
 
+    await pool.query(
+      `
+        SELECT user_id, full_name, email, password_hash
+        FROM users
+        LIMIT 1
+      `
+    );
+    await pool.query(
+      `
+        SELECT customer_id, user_id, full_name, email
+        FROM customers
+        LIMIT 1
+      `
+    );
+
     app.listen(PORT, () => {
       console.log(`Backend API running at http://localhost:${PORT}`);
     });
   } catch (error) {
-    console.error("Unable to connect to MySQL. Check DB_* environment variables.");
+    if (isSchemaMismatchError(error)) {
+      console.error("Database schema mismatch detected.");
+      console.error("Run schema.sql again against the configured database, then restart the backend.");
+    } else {
+      console.error("Unable to connect to MySQL. Check DB_* environment variables.");
+    }
+
     console.error(error.message);
     process.exit(1);
   }

@@ -12,7 +12,17 @@ npm install
 
 2. Configure environment
 
-Copy .env.example values into your shell environment.
+Create a local .env file from .env.example and edit values:
+
+```bash
+cp .env.example .env
+```
+
+On Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
 
 Required values:
 - PORT (default 3000)
