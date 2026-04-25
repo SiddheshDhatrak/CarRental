@@ -34,6 +34,13 @@ Required values:
 - CORS_ORIGIN (frontend URL)
 - ADMIN_API_KEY
 
+Optional values:
+- RESET_FLEET_ON_STARTUP (`true`/`false`).
+
+Dev note:
+- When the backend is started with `npm run dev` (`node --watch`), the API automatically marks all cars as available again at startup and moves any `CONFIRMED` bookings to `COMPLETED`.
+- Set `RESET_FLEET_ON_STARTUP=false` to disable this behavior, or `true` to force it even outside watch mode.
+
 3. Ensure MySQL schema is loaded
 
 From project root:

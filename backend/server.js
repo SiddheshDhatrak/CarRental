@@ -25,6 +25,11 @@ const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
 const adminApiKey = process.env.ADMIN_API_KEY || "change-this-admin-key";
 const authSecret = process.env.AUTH_SECRET || "change-this-auth-secret";
 const authTokenTtlSeconds = Number(process.env.AUTH_TOKEN_TTL_SECONDS || 60 * 60 * 24 * 7);
+const resetFleetOnStartupSetting = parseBooleanEnv(process.env.RESET_FLEET_ON_STARTUP);
+const shouldResetFleetOnStartup =
+  resetFleetOnStartupSetting !== null
+    ? resetFleetOnStartupSetting
+    : process.env.npm_lifecycle_event === "dev" || process.execArgv.includes("--watch");
 
 app.use(helmet());
 app.use(cors({ origin: corsOrigin }));
@@ -48,6 +53,27 @@ function parsePositiveInteger(value) {
   }
 
   return numberValue;
+}
+
+function parseBooleanEnv(value) {
+  if (value == null || String(value).trim() === "") {
+    return null;
+  }
+
+  switch (String(value).trim().toLowerCase()) {
+    case "1":
+    case "true":
+    case "yes":
+    case "on":
+      return true;
+    case "0":
+    case "false":
+    case "no":
+    case "off":
+      return false;
+    default:
+      return null;
+  }
 }
 
 function base64UrlEncode(value) {
@@ -245,6 +271,35 @@ async function fetchFleet(connection = pool) {
   );
 
   return rows.map(mapCarRow);
+}
+
+async function resetFleetAvailabilityOnStartup() {
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [bookingsResult] = await connection.query(
+      `
+        UPDATE bookings
+        SET booking_status = 'COMPLETED'
+        WHERE booking_status = 'CONFIRMED'
+      `
+    );
+    const [carsResult] = await connection.query(`UPDATE cars SET is_available = TRUE`);
+
+    await connection.commit();
+
+    return {
+      completedBookings: bookingsResult.affectedRows || 0,
+      resetCars: carsResult.affectedRows || 0,
+    };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 app.get("/api/health", async (_req, res, next) => {
@@ -875,6 +930,13 @@ async function startServer() {
         LIMIT 1
       `
     );
+
+    if (shouldResetFleetOnStartup) {
+      const { completedBookings, resetCars } = await resetFleetAvailabilityOnStartup();
+      console.log(
+        `Startup reset applied: ${completedBookings} confirmed bookings completed, ${resetCars} cars marked available.`
+      );
+    }
 
     app.listen(PORT, () => {
       console.log(`Backend API running at http://localhost:${PORT}`);
